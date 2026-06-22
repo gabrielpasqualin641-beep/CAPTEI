@@ -1,0 +1,52 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:push": "prisma db push",
+    "db:seed": "tsx src/seed.ts",
+    "clean:leads": "tsx src/scripts/cleanLeads.ts",
+    "clean:all-leads": "tsx src/scripts/nukeLeads.ts",
+    "delete:leads": "tsx src/scripts/deleteAllLeads.ts",
+    "worker": "tsx src/workers/campaignWorker.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@types/node-cron": "^3.0.11",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.77.6",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "google-it": "^1.6.4",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mercadopago": "^3.1.0",
+    "node-cron": "^4.2.1",
+    "redis": "^6.0.0",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.13.2",
+    "@types/uuid": "^10.0.0",
+    "prisma": "6.19.3",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}

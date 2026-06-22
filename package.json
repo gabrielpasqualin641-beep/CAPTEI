@@ -1,0 +1,15 @@
+{
+  "name": "captador-dados-whatsapp",
+  "version": "1.0.0",
+  "description": "Ferramenta de Prospecção via WhatsApp para Agência de Marketing",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev": "npm run dev:backend & npm run dev:frontend"
+  }
+}

@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id            String   @id @default(uuid())
+  userId        String
+  nome          String
+  telefone      String   @unique
+  endereco      String?
+  cidade        String?
+  nicho         String?
+  site          String?
+  email         String?
+  plataforma    String?
+  status_extracao String?
+  avaliacao     Float?
+  total_reviews Int?
+  instagram     String?
+  status        String   @default("Novo") // Novo, Contatado, Respondeu, Proposta Enviada, Fechado, Perdido
+  qualidade     String?  // Alta, Média, Baixa
+  tags          String[]
+  notas         String?
+  criado_em     DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+  ativo         Boolean  @default(true) // Soft delete
+  optOut        Boolean  @default(false)
+  ia_intencao   String?
+  ia_resumo     String?
+
+  interacoes    Interacao[]
+  envios        Envio[]
+  workflow_execucoes WorkflowExecucao[]
+
+  @@index([userId])
+  @@map("leads")
+}
+
+
+model Template {
+  id        String   @id @default(uuid())
+  userId    String
+  nome      String
+  nicho     String?
+  conteudo  String
+  variaveis String[]
+  criado_em DateTime @default(now())
+
+  sequencias FollowupSequencia[]
+  campanhas  Campanha[]
+
+  @@index([userId])
+  @@map("templates")
+}
+
+model FollowupSequencia {
+  id                 String   @id @default(uuid())
+  template_id        String
+  ordem              Int
+  conteudo           String
+  dias_apos_anterior Int
+
+  template Template @relation(fields: [template_id], references: [id])
+  envios   Envio[]
+
+  @@map("followup_sequencias")
+}
+
+model Instancia {
+  id                     String   @id @default(uuid())
+  userId                 String
+  nome                   String
+  numero                 String?
+  status                 String   @default("desconectado") // conectado, desconectado, aguardando_qr
+  evolution_instance_key String?
+  criado_em              DateTime @default(now())
+
+  campanhas Campanha[]
+
+  @@index([userId])
+  @@map("instancias")
+}
+
+model Campanha {
+  id           String   @id @default(uuid())
+  nome         String
+  instancia_id String
+  template_id  String
+  userId       String
+  status       String   @default("Pausada") // Ativa, Pausada, Concluida, Cancelada
+  janela_inicio String  // "09:00"
+  janela_fim    String  // "18:00"
+  dias_semana   Int[]   // 0=Domingo, 1=Segunda, etc.
+  delay_min    Int      @default(30)
+  delay_max    Int      @default(120)
+  criado_em    DateTime @default(now())
+  ativo        Boolean  @default(true) // Soft delete
+
+  instancia Instancia @relation(fields: [instancia_id], references: [id])
+  template  Template  @relation(fields: [template_id], references: [id])
+  envios    Envio[]
+
+  @@index([userId])
+  @@map("campanhas")
+}
+
+model Envio {
+  id                    String    @id @default(uuid())
+  campanha_id           String
+  lead_id               String
+  followup_sequencia_id String?
+  conteudo_renderizado  String
+  status                String    @default("Agendado") // Agendado, Enviado, Falha, Cancelado
+  agendado_para         DateTime
+  enviado_em            DateTime?
+  erro                  String?
+  criado_em             DateTime  @default(now())
+
+  campanha  Campanha           @relation(fields: [campanha_id], references: [id])
+  lead      Lead               @relation(fields: [lead_id], references: [id])
+  sequencia FollowupSequencia? @relation(fields: [followup_sequencia_id], references: [id])
+
+  @@map("envios")
+}
+
+model Interacao {
+  id        String   @id @default(uuid())
+  lead_id   String
+  tipo      String   // enviado, recebido, anotacao
+  conteudo  String
+  criado_em DateTime @default(now())
+
+  lead Lead @relation(fields: [lead_id], references: [id])
+
+  @@map("interacoes")
+}
+
+model Usuario {
+  id                 String    @id @default(uuid())
+  nome               String
+  email              String    @unique
+  senha              String
+  role               String    @default("Operador") // Admin, Operador, Visualizador
+  plano              String    @default("free")
+  disparos_mes       Int       @default(0)
+  data_renovacao     DateTime?
+  mp_subscription_id String?
+  criado_em          DateTime  @default(now())
+
+  @@map("usuarios")
+}
+
+model VarreduraJob {
+  id               String   @id @default(uuid())
+  jobGroupId       String   @unique
+  userId           String
+  nicho            String
+  modo             String   // 'osm' | 'ecommerce'
+  status           String   @default("processando") // processando, concluido, cancelado
+  totalCidades     Int
+  concluidas       Int      @default(0)
+  falhas           Int      @default(0)
+  leadsCapturados  Int      @default(0)
+  criado_em        DateTime @default(now())
+  atualizado_em    DateTime @updatedAt
+
+  @@index([userId])
+  @@map("varredura_jobs")
+}
+
+// ─── Motor de Automação Visual (Workflow Builder) ─────────────────────────────
+
+model Workflow {
+  id            String    @id @default(uuid())
+  /// ID do usuário dono do workflow
+  userId        String
+  nome          String
+  /// JSON com { nodes: FlowNode[], edges: FlowEdge[] } exportado pelo @xyflow/react
+  payload       Json
+  /// ativo = disponível para disparo | inativo = arquivado
+  status        String    @default("ativo") // ativo | inativo
+  criado_em     DateTime  @default(now())
+  atualizado_em DateTime  @updatedAt
+
+  execucoes WorkflowExecucao[]
+
+  @@index([userId])
+  @@map("workflows")
+}
+
+model WorkflowExecucao {
+  id            String    @id @default(uuid())
+  workflow_id   String
+  lead_id       String
+  userId        String
+  /// ID do nó em execução no momento
+  node_atual_id String
+  /// Progresso: pendente | executando | pausado | concluido | erro
+  status        String    @default("pendente")
+  /// ID do job BullMQ para permitir cancelamento via Redis
+  bullmq_job_id String?
+  /// Armazena o último erro caso status = 'erro'
+  erro          String?
+  iniciado_em   DateTime  @default(now())
+  atualizado_em DateTime  @updatedAt
+
+  workflow Workflow @relation(fields: [workflow_id], references: [id])
+  lead     Lead     @relation(fields: [lead_id], references: [id])
+
+  @@index([workflow_id])
+  @@index([lead_id])
+  @@index([userId])
+  @@map("workflow_execucoes")
+}
+
